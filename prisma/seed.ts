@@ -41,7 +41,48 @@ async function main() {
       await prisma.productVariant.upsert({ where: { productId_name: { productId: saved.id, name } }, create: { ...variant, productId: saved.id, name }, update: variant });
     }
   }
+  const tulip = await prisma.product.findUnique({ where: { slug: "tulip-musim-semi" }, select: { id: true } });
+  const rose = await prisma.product.findUnique({ where: { slug: "mawar-untukmu" }, select: { id: true } });
+  const slides = [
+    { id: "home-hero-tulip", title: "Berikan sedikit musim semi", description: "Lima tulip pink segar dirangkai dengan daun pilihan. Hadiah lembut untuk merayakan momen yang berarti.", imageUrl: "/images/hero-bouquet.png", imageAlt: "Bucket berisi lima bunga tulip pink dengan daun hijau", blendMultiply: false, productId: tulip?.id ?? null, sortOrder: 0, isActive: true },
+    { id: "home-hero-rose", title: "Sampaikan rasa lewat mawar", description: "Mawar pilihan dengan pita satin untuk menyampaikan rasa sayang. Dirangkai segar dan dikemas cantik untuk orang tersayang.", imageUrl: "/images/hero-tulip.png", imageAlt: "Buket tulip pink segar dengan daun hijau", blendMultiply: false, productId: rose?.id ?? null, sortOrder: 1, isActive: true },
+  ];
+  for (const slide of slides) await prisma.heroSlide.upsert({ where: { id: slide.id }, create: slide, update: slide });
+
+  const testimonials = [
+    ["Nadia Putri", "Buket tulipnya cantik dan bunganya segar. Pengemasannya rapi, penerima hadiah saya senang sekali.", 5],
+    ["Rizky Pratama", "Pesanan datang sesuai jadwal dan tampilannya persis seperti yang saya harapkan.", 5],
+    ["Ayu Maharani", "Warna bunganya lembut, cocok untuk hadiah wisuda adik. Terima kasih banyak.", 5],
+    ["Dewi Anggraini", "Komunikasi mudah dan buketnya dibuat dengan teliti. Pasti pesan lagi.", 4],
+    ["Bima Saputra", "Mawar yang saya pesan terlihat segar dan pitanya manis sekali.", 5],
+    ["Siti Rahmawati", "Hadiah ulang tahun jadi lebih berkesan. Bunganya sampai dengan kondisi baik.", 5],
+    ["Fajar Nugroho", "Pelayanan ramah dan rangkaiannya sesuai permintaan. Sangat membantu.", 4],
+    ["Laras Wulandari", "Buketnya cantik untuk sesi foto wisuda dan dibungkus dengan aman.", 5],
+    ["Andini Kusuma", "Pesanan dibuat rapi, kartu ucapannya juga ditulis sesuai pesan saya.", 5],
+    ["Dimas Kurniawan", "Bunga segar dan pengiriman tepat waktu. Pengalaman belanja yang menyenangkan.", 4],
+  ] as const;
+  for (const [index, [name, message, rating]] of testimonials.entries()) {
+    await prisma.testimonial.upsert({ where: { id: `sample-testimonial-${index + 1}` }, create: { id: `sample-testimonial-${index + 1}`, name, message, rating, status: "PUBLISHED", isSample: true }, update: { name, message, rating, status: "PUBLISHED", isSample: true } });
+  }
+  await prisma.blogPost.upsert({ where: { slug: "merawat-buket-bunga" }, create: { slug: "merawat-buket-bunga", title: "Cara sederhana merawat buket bunga", excerpt: "Beberapa langkah ringan untuk menjaga buket tetap cantik lebih lama.", content: "<p>Simpan buket di tempat yang sejuk dan bersihkan air secara berkala.</p>", status: "DRAFT" }, update: { title: "Cara sederhana merawat buket bunga", excerpt: "Beberapa langkah ringan untuk menjaga buket tetap cantik lebih lama.", content: "<p>Simpan buket di tempat yang sejuk dan bersihkan air secara berkala.</p>", status: "DRAFT", publishedAt: null } });
+  const defaultPages = [
+    { slug: "beranda", title: "Beranda", blocks: [{ type: "hero" }, { type: "produkUnggulan", mode: "featured", productIds: [], count: 4, title: "Rangkaian yang paling disayang" }, { type: "kategori", title: "Bunga untuk setiap cerita" }, { type: "keunggulan", title: "Hal kecil yang berarti", items: [{ icon: "✿", title: "Dirangkai segar", text: "Rangkaian dibuat dengan bunga pilihan dan perhatian." }, { icon: "♡", title: "Dikemas penuh kasih", text: "Setiap pesanan dipersiapkan dengan rapi." }, { icon: "↗", title: "Antar ke tujuan", text: "Pilih alamat dan jadwal saat memesan." }] }, { type: "ulasanTerbaru", title: "Ulasan pelanggan" }, { type: "cta", title: "Buat hari terasa lebih indah", text: "Temukan rangkaian untuk momen yang berarti.", buttonLabel: "Jelajahi toko", href: "/toko" }] },
+    { slug: "tentang", title: "Tentang radinkacraft", blocks: [{ type: "judul", level: 1, text: "Tentang radinkacraft", align: "center" }, { type: "teks", html: "<p>Radinkacraft menghadirkan rangkaian bunga untuk menemani berbagai cerita dan momen istimewa. Setiap rangkaian dibuat dengan perhatian pada detail dan dapat disesuaikan melalui pilihan produk yang tersedia.</p>" }] },
+    { slug: "galeri", title: "Galeri", blocks: [{ type: "judul", level: 1, text: "Galeri rangkaian", align: "center" }, { type: "galeri", items: [{ url: "/images/hero-bouquet.png", alt: "Bucket tulip pink" }, { url: "/images/product-sample-rose.jpg", alt: "Bucket mawar pink" }], layout: "grid" }] },
+    { slug: "faq", title: "Pertanyaan yang sering diajukan", blocks: [{ type: "faq", title: "Pertanyaan yang sering diajukan", items: [{ question: "Bagaimana cara memesan bunga?", answer: "Pilih rangkaian dan ukuran yang tersedia, lalu ikuti langkah pemesanan." }, { question: "Apakah saya dapat menambahkan pesan?", answer: "Pesan dapat ditulis pada kolom kartu ucapan saat pemesanan." }] }] },
+    { slug: "kontak", title: "Kontak", blocks: [{ type: "kontak", title: "Hubungi radinkacraft", address: "Informasi alamat dapat ditambahkan oleh pengelola.", phone: "", whatsapp: "", email: "", hours: "Jam layanan dapat ditambahkan oleh pengelola." }] },
+    { slug: "syarat-ketentuan", title: "Syarat dan ketentuan", blocks: [{ type: "judul", level: 1, text: "Syarat dan ketentuan", align: "left" }, { type: "teks", html: "<p>Informasi syarat pemesanan, pembayaran, dan pengiriman akan diperbarui oleh pengelola toko.</p>" }] },
+    { slug: "kebijakan-privasi", title: "Kebijakan privasi", blocks: [{ type: "judul", level: 1, text: "Kebijakan privasi", align: "left" }, { type: "teks", html: "<p>Informasi mengenai penggunaan data pelanggan akan diperbarui oleh pengelola toko.</p>" }] },
+  ];
+  for (const page of defaultPages) await prisma.page.upsert({ where: { slug: page.slug }, create: { ...page, isSystem: true, status: "PUBLISHED" }, update: { title: page.title, isSystem: true } });
+  await prisma.setting.upsert({ where: { key: "site" }, create: { key: "site", value: { name: "radinkacraft", logoUrl: "", faviconUrl: "" } }, update: {} });
+  await prisma.setting.upsert({ where: { key: "nav" }, create: { key: "nav", value: [{ label: "Toko", href: "/toko" }, { label: "Tentang", href: "/tentang" }, { label: "Blog", href: "/blog" }, { label: "Kontak", href: "/kontak" }] }, update: {} });
+  await prisma.setting.upsert({ where: { key: "footer" }, create: { key: "footer", value: { note: "Rangkaian bunga penuh kasih untuk setiap cerita.", copyright: "© Radinkacraft. Dirangkai dengan kasih.", address: "", phone: "", email: "", columns: [], socials: [] } }, update: {} });
   await prisma.setting.upsert({ where: { key: "storefront" }, create: { key: "storefront", value: { name: "Radinkacraft", currency: "IDR" } }, update: { value: { name: "Radinkacraft", currency: "IDR" } } });
+  await prisma.bankAccount.upsert({ where: { id: "sample-bank-bca" }, create: { id: "sample-bank-bca", bankName: "BCA (contoh)", accountNumber: "0000000000", accountHolder: "radinkacraft (contoh)", sortOrder: 1, isActive: true }, update: { bankName: "BCA (contoh)", accountNumber: "0000000000", accountHolder: "radinkacraft (contoh)", sortOrder: 1, isActive: true } });
+  await prisma.bankAccount.upsert({ where: { id: "sample-bank-mandiri" }, create: { id: "sample-bank-mandiri", bankName: "Mandiri (contoh)", accountNumber: "1111111111", accountHolder: "radinkacraft (contoh)", sortOrder: 2, isActive: true }, update: { bankName: "Mandiri (contoh)", accountNumber: "1111111111", accountHolder: "radinkacraft (contoh)", sortOrder: 2, isActive: true } });
+  await prisma.setting.upsert({ where: { key: "shipping" }, create: { key: "shipping", value: [{ name: "Dalam kota", fee: 15000 }, { name: "Luar kota dekat", fee: 25000 }, { name: "Ambil di toko", fee: 0 }] }, update: { value: [{ name: "Dalam kota", fee: 15000 }, { name: "Luar kota dekat", fee: 25000 }, { name: "Ambil di toko", fee: 0 }] } });
+  await prisma.setting.upsert({ where: { key: "paymentExpiryHours" }, create: { key: "paymentExpiryHours", value: 24 }, update: { value: 24 } });
 }
 
 main().finally(() => prisma.$disconnect());

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
+import { SiteHeader } from "@/components/site-header";
 import { ShopFilters } from "@/components/shop-filters";
 import { homepageContent } from "@/data/homepage";
 import { getCategories, listProducts } from "@/lib/products";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 const value = (params: SearchParams, key: string) => typeof params[key] === "string" ? params[key] as string : "";
+export const revalidate=60;
+export async function generateMetadata({searchParams}:{searchParams:SearchParams}):Promise<Metadata>{const filtered=Object.values(searchParams).some(value=>Array.isArray(value)?value.length>0:Boolean(value));return buildMetadata({title:"Toko bunga",description:"Jelajahi bucket bunga dan rangkaian pilihan radinkacraft.",path:"/toko",noindex:filtered});}
 
 function pageUrl(params: SearchParams, nextPage: number) {
   const search = new URLSearchParams();
@@ -25,7 +30,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
   ]);
   const activeFilters = Object.fromEntries(["kategori", "q", "min", "max", "ukuran", "urut"].map((key) => [key, value(searchParams, key)]));
 
-  return <main className="shop-page">
+  return <main className="shop-page"><SiteHeader />
     <header className="floating-panel shop-hero"><p className="eyebrow">Rangkaian bunga Radinkacraft</p><h1>Temukan bunga untuk ceritamu</h1><p>Pilih buket yang paling pas untuk momen istimewa.</p></header>
     <div className="shop-layout"><ShopFilters categories={categories} values={activeFilters} />
       <section className="shop-results" aria-label="Daftar produk">

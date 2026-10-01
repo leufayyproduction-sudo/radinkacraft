@@ -1,0 +1,1 @@
+{"buildCommand":"prisma migrate deploy && next build","regions":["bom1"],"crons":[{"path":"/api/cron/expire-orders","schedule":"0 17 * * *"}]}

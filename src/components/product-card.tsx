@@ -10,6 +10,8 @@ type CardProduct = {
   minPrice: number;
   compareAtPrice: number | null;
   totalStock: number;
+  ratingAvg?: number;
+  ratingCount?: number;
   primaryImage: { url: string; alt: string; blendMultiply: boolean } | null;
 };
 
@@ -22,6 +24,7 @@ export function ProductCard({ product }: { product: CardProduct }) {
       <div className="catalog-card-info">
         <h3><Link href={`/produk/${product.slug}`}>{product.name}</Link></h3>
         <p>{product.shortDescription}</p>
+        {!!product.ratingCount && <div className="catalog-rating" aria-label={product.ratingAvg?.toFixed(1)+" dari 5 bintang"}><span>★</span> {product.ratingAvg?.toFixed(1)} <small>({product.ratingCount})</small></div>}
         <div className="stock-badges" aria-live="polite">
           {product.totalStock === 0 ? <span className="stock-badge sold-out">Habis</span> : product.totalStock < 5 ? <span className="stock-badge">Stok menipis</span> : null}
         </div>

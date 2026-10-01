@@ -1,0 +1,8 @@
+"use client";
+import { useState, useTransition } from "react";
+import { deleteReview, moderateReview, deleteSampleReviews } from "@/app/admin/actions";
+import type { TestimonialStatus } from "@prisma/client";
+import { ConfirmButton } from "@/components/admin-ui";
+type ReviewState=TestimonialStatus;
+export function ReviewActions({id,status,name}:{id:string;status:ReviewState;name:string}){const [pending,start]=useTransition();const [msg,setMsg]=useState("");return <div className="admin-actions">{status!=="PUBLISHED"&&<button disabled={pending} className="secondary-button" onClick={()=>start(async()=>{await moderateReview(id,"PUBLISHED");setMsg("Testimoni disetujui.");})}>Setujui</button>}{status!=="HIDDEN"&&<button disabled={pending} className="secondary-button" onClick={()=>start(async()=>{await moderateReview(id,"HIDDEN");setMsg("Testimoni disembunyikan.");})}>Sembunyikan</button>}<ConfirmButton message={`Hapus testimoni dari ${name}?`} action={async()=>{await deleteReview(id);setMsg("Testimoni dihapus.");}}>{pending?"Memproses…":"Hapus"}</ConfirmButton>{msg&&<small role="status">{msg}</small>}</div>}
+export function DeleteSamples(){const [msg,setMsg]=useState("");return <button className="danger-button" onClick={async()=>{if(!window.confirm("Hapus semua testimoni contoh? Tindakan ini tidak dapat dibatalkan."))return;const value=window.prompt("Ketik HAPUS ULASAN CONTOH untuk mengonfirmasi:");if(value){const result=await deleteSampleReviews(value);setMsg(result.error||"Testimoni contoh dihapus.");window.location.reload();}}}>Hapus semua ulasan contoh{msg&&<span>{msg}</span>}</button>}

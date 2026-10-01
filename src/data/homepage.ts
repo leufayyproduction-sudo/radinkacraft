@@ -4,6 +4,7 @@ export const homepageContent = {
   navigation: [
     { label: "Toko", href: "/toko" },
     { label: "Tentang", href: "/#tentang" },
+    { label: "Blog", href: "/blog" },
     { label: "Kontak", href: "/#kontak" },
   ],
   heroSlides: [
@@ -31,8 +32,8 @@ export const homepageContent = {
       sizes: ["S", "M", "L", "XL"],
       defaultSize: "M",
       priceBySize: { S: 119000, M: 169000, L: 239000, XL: 319000 },
-      image: "/images/hero-bouquet.png",
-      imageAlt: "Bucket bunga tulip pink Radinkacraft",
+      image: "/images/hero-tulip.png",
+      imageAlt: "Buket tulip pink segar dengan daun hijau",
       productName: "Pink celebration",
     },
     {

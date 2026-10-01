@@ -1,0 +1,6 @@
+"use client";
+import { useState } from "react";
+import Image from "next/image";
+import { deleteMedia, updateMediaAlt } from "@/app/admin/actions";
+import { ConfirmButton, type MediaOption } from "@/components/admin-ui";
+export function AdminMediaActions({ item }: { item: MediaOption }) { const [alt,setAlt]=useState(item.alt); const [message,setMessage]=useState(""); return <div className="media-tile media-edit"><Image src={item.url} alt={item.alt||"Media tanpa teks alternatif"} width={300} height={220}/><label>Teks alternatif<input value={alt} onChange={(e)=>setAlt(e.target.value)}/></label>{!alt.trim()&&<small className="admin-warning">Isi teks alternatif agar gambar lebih mudah diakses.</small>}<div className="admin-actions"><button className="secondary-button" type="button" onClick={async()=>{const result=await updateMediaAlt(item.id,alt);setMessage(result.error||"Teks alternatif disimpan.");}}>Simpan alt</button><ConfirmButton message="Hapus gambar ini dari Media Library dan Storage? Tautan produk/kategori yang memakainya juga akan kehilangan gambar." action={async()=>{const result=await deleteMedia(item.id);if(result.error)setMessage(result.error);else window.location.reload();}}>Hapus</ConfirmButton></div>{message&&<small role="status">{message}</small>}</div>; }

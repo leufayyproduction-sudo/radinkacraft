@@ -1,0 +1,4 @@
+import { requireAdmin } from "@/lib/admin";
+import { prisma } from "@/lib/prisma";
+import { AdminSettingsForm } from "@/components/admin-settings-form";
+export default async function AdminSettingsPage(){await requireAdmin();const [shipping,expiry,store,media]=await Promise.all([prisma.setting.findUnique({where:{key:"shipping"}}),prisma.setting.findUnique({where:{key:"paymentExpiryHours"}}),prisma.setting.findUnique({where:{key:"store"}}),prisma.media.findMany({orderBy:{createdAt:"desc"},take:100})]);const zones=Array.isArray(shipping?.value)?shipping.value as {name:string;fee:number}[]:[];const storeData=store?.value&&typeof store.value==="object"?store.value as Record<string,string|null>:{};return <><div className="admin-page-heading"><div><p className="eyebrow">Operasional toko</p><h1>Pengaturan toko</h1></div></div><AdminSettingsForm initialZones={zones} expiry={typeof expiry?.value==="number"?expiry.value:24} store={storeData} media={media}/></>}

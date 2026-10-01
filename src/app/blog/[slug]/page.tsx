@@ -1,0 +1,16 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { sanitizeRichText } from "@/lib/cms/sanitize";
+import { SiteHeader } from "@/components/site-header";
+import { buildMetadata,absoluteUrl } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
+import { redirectOrLogNotFound } from "@/lib/redirect-handler";
+import { headers } from "next/headers";
+type Props={params:{slug:string}};
+async function getPost(slug:string){return prisma.blogPost.findFirst({where:{slug,status:"PUBLISHED",publishedAt:{lte:new Date()}}});}
+export const revalidate=60;
+export async function generateMetadata({params}:Props):Promise<Metadata>{const post=await getPost(params.slug);return post?buildMetadata({entityType:"BLOG_POST",entityId:post.slug,title:post.title,description:post.excerpt,path:`/blog/${post.slug}`,imageUrl:post.coverImageUrl}):{title:"Artikel tidak ditemukan | radinkacraft",robots:{index:false,follow:false}};}
+export default async function BlogArticle({params}:Props){const [post,related]=await Promise.all([getPost(params.slug),prisma.blogPost.findMany({where:{status:"PUBLISHED",publishedAt:{lte:new Date()},slug:{not:params.slug}},orderBy:{publishedAt:"desc"},take:3})]);if(!post){await redirectOrLogNotFound(`/blog/${params.slug}`,headers().get("referer"));notFound();}const author=post.authorId?await prisma.profile.findUnique({where:{id:post.authorId},select:{name:true}}):null;const url=absoluteUrl(`/blog/${post.slug}`);const articleSchema={"@context":"https://schema.org","@type":"Article",headline:post.title,description:post.excerpt,datePublished:post.publishedAt?.toISOString(),dateModified:post.updatedAt.toISOString(),mainEntityOfPage:url,...(post.coverImageUrl?{image:post.coverImageUrl}:{}),author:{"@type":"Person",name:author?.name||"tim radinkacraft"},publisher:{"@type":"Organization",name:"Radinkacraft",url:absoluteUrl("/")}};const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList",itemListElement:[{"@type":"ListItem",position:1,name:"Beranda",item:absoluteUrl("/")},{"@type":"ListItem",position:2,name:"Blog",item:absoluteUrl("/blog")},{"@type":"ListItem",position:3,name:post.title,item:url}]};return <main className="page-content cms-public"><SiteHeader/><JsonLd data={articleSchema}/><JsonLd data={crumbs}/><nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">Beranda</Link><span>/</span><Link href="/blog">Blog</Link><span>/</span><span>{post.title}</span></nav><article className="floating-panel cms-article">{post.coverImageUrl&&<Image className="cms-cover" src={post.coverImageUrl} alt={post.coverAlt||post.title} width={1200} height={700} priority/>}<p className="eyebrow">{post.publishedAt&&new Intl.DateTimeFormat("id-ID",{dateStyle:"long"}).format(post.publishedAt)}</p><h1>{post.title}</h1><p>{post.excerpt}</p><div className="cms-rich-text" dangerouslySetInnerHTML={{__html:sanitizeRichText(post.content)}}/><small>Ditulis oleh {author?.name||"tim radinkacraft"}</small></article>{related.length>0&&<section className="floating-panel cms-panel"><h2>Artikel terkait</h2><div className="cms-related">{related.map(item=><Link key={item.id} href={`/blog/${item.slug}`}>{item.title}</Link>)}</div></section>}</main>}

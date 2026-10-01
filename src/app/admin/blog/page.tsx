@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { requireAdmin } from "@/lib/admin";
+import { prisma } from "@/lib/prisma";
+import { AdminBlogEditor } from "@/components/cms/admin-blog-editor";
+import { deleteBlogPost } from "@/app/admin/blog/actions";
+import type { MediaOption } from "@/components/admin-ui";
+import { DeleteConfirmForm } from "@/components/cms/delete-confirm-form";
+import { analyzeSeo } from "@/lib/seo-analysis";
+export default async function AdminBlog({ searchParams }: { searchParams: { edit?: string } }) {
+  await requireAdmin();
+  const [posts, media, edit] = await Promise.all([prisma.blogPost.findMany({ orderBy: { updatedAt: "desc" } }), prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 100 }), searchParams.edit ? prisma.blogPost.findUnique({ where: { id: searchParams.edit } }) : Promise.resolve(null)]);
+  const [seo,seoRows]=await Promise.all([edit?prisma.seoMeta.findUnique({where:{entityType_entityId:{entityType:"BLOG_POST",entityId:edit.slug}}}):Promise.resolve(null),prisma.seoMeta.findMany({where:{entityType:"BLOG_POST",entityId:{in:posts.map(post=>post.slug)}}})]);const seoMap=new Map(seoRows.map(row=>[row.entityId,row]));
+  return <><div className="admin-page-heading"><div><p className="eyebrow">Artikel</p><h1>Blog</h1></div><Link className="buy-button" href="/admin/blog">Artikel baru</Link></div><AdminBlogEditor post={edit ?? undefined} media={media as MediaOption[]} seo={seo}/><section className="admin-card"><h2>Semua artikel</h2><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Judul</th><th>Slug</th><th>Status</th><th>SEO</th><th>Baca</th><th>Diperbarui</th><th>Aksi</th></tr></thead><tbody>{posts.map(post=>{const meta=seoMap.get(post.slug);const analysis=analyzeSeo({keyword:meta?.focusKeyword||"",title:meta?.seoTitle||post.title,description:meta?.metaDescription||post.excerpt,slug:post.slug,content:post.content,kind:"blog",imageAlts:post.coverImageUrl?[post.coverAlt||""]:[]});return <tr key={post.id}><td>{post.title}</td><td>/blog/{post.slug}</td><td>{post.status==="PUBLISHED"?"Terbit":"Draf"}</td><td><span className={`seo-light ${analysis.seoScore>=.75?"good":analysis.seoScore>=.45?"warn":"bad"}`}>{Math.round(analysis.seoScore*100)}%</span></td><td><span className={`seo-light ${analysis.readabilityScore>=.75?"good":analysis.readabilityScore>=.45?"warn":"bad"}`}>{Math.round(analysis.readabilityScore*100)}%</span></td><td>{new Intl.DateTimeFormat("id-ID",{dateStyle:"medium"}).format(post.updatedAt)}</td><td><div className="cms-fields"><Link className="secondary-button" href={`/admin/blog?edit=${post.id}`}>Ubah</Link><DeleteConfirmForm id={post.id} action={deleteBlogPost} message="Hapus artikel ini secara permanen?"/></div></td></tr>})}</tbody></table></div>{!posts.length&&<p>Belum ada artikel.</p>}</section></>;
+}

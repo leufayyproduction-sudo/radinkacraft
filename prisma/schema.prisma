@@ -13,6 +13,69 @@ enum ProductStatus {
   PUBLISHED
 }
 
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  MENUNGGU_QRIS
+  MENUNGGU_BAYAR
+  MENUNGGU_KONFIRMASI
+  DIBAYAR
+  DIPROSES
+  DIKIRIM
+  SELESAI
+  DIBATALKAN
+}
+
+enum PaymentMethod {
+  BANK
+  QRIS
+}
+
+enum PaymentStatus {
+  PENDING
+  SUBMITTED
+  CONFIRMED
+  REJECTED
+}
+
+enum DeliverySlot {
+  PAGI
+  SIANG
+  SORE
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  PENDING
+  HIDDEN
+}
+
+enum TestimonialStatus {
+  PUBLISHED
+  PENDING
+  HIDDEN
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum SeoEntityType {
+  PRODUCT
+  CATEGORY
+  PAGE
+  BLOG_POST
+}
+
+enum TwitterCardType {
+  summary
+  summary_large_image
+}
+
 model Category {
   id          String    @id @default(cuid())
   name        String
@@ -41,11 +104,214 @@ model Product {
   category         Category         @relation(fields: [categoryId], references: [id])
   images           ProductImage[]
   variants         ProductVariant[]
+  orderItems       OrderItem[]
+  heroSlides       HeroSlide[]
+  ratingAvg        Float            @default(0)
+  ratingCount      Int              @default(0)
+  reviews          Review[]
 
   @@index([slug])
   @@index([categoryId])
   @@index([status])
   @@index([isFeatured])
+}
+
+model Page {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  title       String
+  status      PageStatus     @default(DRAFT)
+  blocks      Json
+  isSystem    Boolean        @default(false)
+  publishedAt DateTime?
+  updatedAt   DateTime       @updatedAt
+  revisions   PageRevision[]
+
+  @@index([status])
+}
+
+model PageRevision {
+  id          String   @id @default(cuid())
+  pageId      String
+  title       String
+  blocks      Json
+  createdById String
+  createdAt   DateTime @default(now())
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, createdAt])
+}
+
+model BlogPost {
+  id            String     @id @default(cuid())
+  slug          String     @unique
+  title         String
+  excerpt       String     @db.VarChar(500)
+  coverImageUrl String?
+  coverAlt      String?
+  content       String     @db.Text
+  status        PageStatus @default(DRAFT)
+  publishedAt   DateTime?
+  authorId      String?
+  updatedAt     DateTime   @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model SeoMeta {
+  id              String           @id @default(cuid())
+  entityType      SeoEntityType
+  entityId        String
+  focusKeyword    String?
+  seoTitle        String?
+  metaDescription String?
+  canonicalUrl    String?
+  robotsIndex     Boolean          @default(true)
+  robotsFollow    Boolean          @default(true)
+  ogTitle         String?
+  ogDescription   String?
+  ogImageUrl      String?
+  twitterCard     TwitterCardType?
+  breadcrumbTitle String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([entityType, entityId])
+  @@index([entityType])
+}
+
+model Redirect {
+  id         String   @id @default(cuid())
+  fromPath   String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  isActive   Boolean  @default(true)
+  hits       Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model NotFoundLog {
+  id           String   @id @default(cuid())
+  path         String   @unique
+  count        Int      @default(1)
+  lastSeenAt   DateTime @default(now())
+  lastReferrer String?
+}
+
+model RateLimitCounter {
+  id          String   @id @default(cuid())
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([key, windowStart])
+  @@index([windowStart])
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  path      String   @unique
+  url       String
+  alt       String   @default("")
+  width     Int?
+  height    Int?
+  sizeBytes Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model HeroSlide {
+  id            String   @id @default(cuid())
+  title         String
+  description   String   @db.Text
+  imageUrl      String
+  imageAlt      String   @default("")
+  blendMultiply Boolean  @default(false)
+  productId     String?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+model LegacyReview {
+  id        String       @id @default(cuid())
+  name      String
+  content   String       @db.Text
+  rating    Int          @default(5)
+  status    ReviewStatus @default(PENDING)
+  isSample  Boolean      @default(false)
+  createdAt DateTime     @default(now())
+
+  @@index([status, createdAt])
+  @@index([isSample])
+  @@map("LegacyReview")
+}
+
+model Review {
+  id            String          @id @default(cuid())
+  productId     String
+  orderItemId   String          @unique
+  userId        String?
+  displayName   String
+  showFullName  Boolean         @default(false)
+  rating        Int
+  body          String          @db.VarChar(1000)
+  status        ReviewStatus    @default(PUBLISHED)
+  helpfulCount  Int             @default(0)
+  sellerReply   String?         @db.Text
+  sellerReplyAt DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItem     OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  user          Profile?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  photos        ReviewPhoto[]
+  helpfulVotes  ReviewHelpful[]
+
+  @@index([productId, status, createdAt])
+}
+
+model ReviewPhoto {
+  id        String @id @default(cuid())
+  reviewId  String
+  path      String
+  url       String
+  sortOrder Int    @default(0)
+  review    Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId, sortOrder])
+}
+
+model ReviewHelpful {
+  reviewId String
+  voterKey String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@id([reviewId, voterKey])
+}
+
+model Testimonial {
+  id              String            @id @default(cuid())
+  name            String            @db.VarChar(60)
+  message         String            @db.VarChar(300)
+  rating          Int               @default(5)
+  status          TestimonialStatus @default(PUBLISHED)
+  isVerifiedBuyer Boolean           @default(false)
+  isSample        Boolean           @default(false)
+  userId          String?
+  ipHash          String?
+  createdAt       DateTime          @default(now())
+  user            Profile?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([ipHash, createdAt])
 }
 
 model ProductImage {
@@ -62,16 +328,17 @@ model ProductImage {
 }
 
 model ProductVariant {
-  id             String  @id @default(cuid())
+  id             String      @id @default(cuid())
   productId      String
   name           String
   price          Int
   compareAtPrice Int?
-  stock          Int     @default(0)
-  sku            String? @unique
-  sortOrder      Int     @default(0)
-  isActive       Boolean @default(true)
-  product        Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stock          Int         @default(0)
+  sku            String?     @unique
+  sortOrder      Int         @default(0)
+  isActive       Boolean     @default(true)
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems     OrderItem[]
 
   @@unique([productId, name])
   @@index([productId])
@@ -81,4 +348,133 @@ model Setting {
   id    String @id @default(cuid())
   key   String @unique
   value Json
+}
+
+model Profile {
+  id           String        @id
+  email        String        @unique
+  name         String?
+  phone        String?
+  role         UserRole      @default(CUSTOMER)
+  createdAt    DateTime      @default(now())
+  orders       Order[]
+  testimonials Testimonial[]
+  reviews      Review[]
+}
+
+model BankAccount {
+  id            String    @id @default(cuid())
+  bankName      String
+  accountNumber String
+  accountHolder String
+  logoUrl       String?
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  payments      Payment[]
+}
+
+model QrisAsset {
+  id        String    @id @default(cuid())
+  amount    Int       @unique
+  imagePath String
+  label     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  payments  Payment[]
+}
+
+model Order {
+  id             String           @id @default(cuid())
+  orderNumber    String           @unique
+  accessToken    String           @unique
+  userId         String?
+  status         OrderStatus      @default(MENUNGGU_BAYAR)
+  customerName   String
+  customerEmail  String
+  customerPhone  String
+  recipientName  String
+  recipientPhone String
+  address        String           @db.Text
+  city           String
+  postalCode     String?
+  shippingZone   String
+  deliveryDate   DateTime         @db.Date
+  deliverySlot   DeliverySlot
+  cardMessage    String?          @db.VarChar(200)
+  notes          String?          @db.Text
+  subtotal       Int
+  shippingFee    Int
+  total          Int
+  expiresAt      DateTime
+  paymentMethod  PaymentMethod
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  profile        Profile?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items          OrderItem[]
+  payment        Payment?
+  invoice        Invoice?
+  statusLogs     OrderStatusLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  orderId       String   @unique
+  issuedAt      DateTime @default(now())
+  snapshot      Json
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderItem {
+  id          String          @id @default(cuid())
+  orderId     String
+  productId   String?
+  variantId   String?
+  productName String
+  variantName String
+  price       Int
+  qty         Int
+  imageUrl    String
+  cardNote    String?         @db.VarChar(200)
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  review      Review?
+  product     Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  orderId         String        @unique
+  method          PaymentMethod
+  amount          Int
+  status          PaymentStatus @default(PENDING)
+  bankAccountId   String?
+  qrisAssetId     String?
+  proofPath       String?
+  proofUploadedAt DateTime?
+  confirmedById   String?
+  confirmedAt     DateTime?
+  rejectReason    String?
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bankAccount     BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  qrisAsset       QrisAsset?    @relation(fields: [qrisAssetId], references: [id], onDelete: SetNull)
+}
+
+model OrderStatusLog {
+  id         String       @id @default(cuid())
+  orderId    String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  note       String?
+  actorId    String?
+  createdAt  DateTime     @default(now())
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
 }
