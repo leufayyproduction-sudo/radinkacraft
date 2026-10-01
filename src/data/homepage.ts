@@ -1,0 +1,95 @@
+export const homepageContent = {
+  brand: "radinkacraft",
+  contactEmail: "halo@radinkacraft.id",
+  navigation: [
+    { label: "Toko", href: "/toko" },
+    { label: "Tentang", href: "/#tentang" },
+    { label: "Kontak", href: "/#kontak" },
+  ],
+  heroSlides: [
+    {
+      day: "21",
+      suffix: "st",
+      month: "March",
+      title: "Berikan sedikit musim semi",
+      description:
+        "Tulip adalah bunga musim semi yang mekar dengan kelopak besar dan cerah. Kami merangkainya segar setiap hari dan mengirimnya rapi ke pintu penerima.",
+      sizes: ["S", "M", "L", "XL"],
+      defaultSize: "M",
+      priceBySize: { S: 99000, M: 149000, L: 219000, XL: 299000 },
+      image: "/images/hero-bouquet.png",
+      imageAlt: "Bucket berisi lima bunga tulip pink dengan daun hijau",
+      productName: "Spring tulip",
+    },
+    {
+      day: "08",
+      suffix: "th",
+      month: "May",
+      title: "Manisnya hadir dalam warna",
+      description:
+        "Rangkaian bunga pilihan untuk merayakan momen kecil yang berarti. Dibuat dengan penuh perhatian, lalu dikemas cantik untuk orang tersayang.",
+      sizes: ["S", "M", "L", "XL"],
+      defaultSize: "M",
+      priceBySize: { S: 119000, M: 169000, L: 239000, XL: 319000 },
+      image: "/images/hero-bouquet.png",
+      imageAlt: "Bucket bunga tulip pink Radinkacraft",
+      productName: "Pink celebration",
+    },
+    {
+      day: "14",
+      suffix: "th",
+      month: "June",
+      title: "Kirimkan hangatnya perhatian",
+      description:
+        "Bunga segar menjadi cara sederhana untuk membuat hari seseorang terasa istimewa. Pilih ukuran favorit dan biar kami yang merangkainya.",
+      sizes: ["S", "M", "L", "XL"],
+      defaultSize: "M",
+      priceBySize: { S: 109000, M: 159000, L: 229000, XL: 309000 },
+      image: "/images/hero-bouquet.png",
+      imageAlt: "Bucket bunga tulip pink yang dirangkai segar",
+      productName: "A little sunshine",
+    },
+    {
+      day: "25",
+      suffix: "th",
+      month: "July",
+      title: "Untuk semua cerita indah",
+      description:
+        "Sampaikan rasa sayang, terima kasih, atau selamat dengan rangkaian bunga yang dibuat segar untuk setiap cerita.",
+      sizes: ["S", "M", "L", "XL"],
+      defaultSize: "M",
+      priceBySize: { S: 129000, M: 179000, L: 249000, XL: 329000 },
+      image: "/images/hero-bouquet.png",
+      imageAlt: "Rangkaian bucket tulip pink untuk hadiah",
+      productName: "Lovely day",
+    },
+  ],
+  heroEyebrow: "Dirangkai segar untukmu",
+  heroButton: "Pesan sekarang",
+  productButton: "Pesan",
+  featuredHeading: "Rangkaian yang paling disayang",
+  featuredEyebrow: "Favorit pelanggan",
+  featuredIntro: "Dibuat segar untuk menemani hari-hari istimewa.",
+  products: [
+    { name: "Spring tulip", detail: "Lima tulip pink segar", price: 149000, image: "/images/hero-bouquet.png", alt: "Bucket tulip pink segar" },
+    { name: "Rosé for you", detail: "Mawar lembut dengan pita", price: 189000, image: "/images/product-sample-rose.jpg", alt: "Bucket mawar pink dengan pita" },
+    { name: "Peachy days", detail: "Warna hangat untuk hari cerah", price: 169000, image: "/images/hero-bouquet.png", alt: "Buket bunga warna pink lembut" },
+  ],
+  categoryHeading: "Bunga untuk setiap cerita",
+  categoryEyebrow: "Temukan rangkaianmu",
+  categories: ["Bucket", "Standing flower", "Hand bouquet", "Wisuda", "Pernikahan", "Duka cita"],
+  benefitsEyebrow: "Dari kami, dengan kasih",
+  benefitsHeading: "Hal kecil yang berarti",
+  benefits: [
+    { title: "Dirangkai segar", text: "Setiap buket dirangkai dengan bunga pilihan pada hari pengiriman." },
+    { title: "Dikemas penuh kasih", text: "Detail kecil dan kemasan cantik membuat hadiah terasa lebih istimewa." },
+    { title: "Antar ke tujuan", text: "Kami membantu mengirimkan rangkaian bunga langsung ke penerima." },
+  ],
+  review: { ratingLabel: "5 dari 5 bintang", rating: 5, quote: "Buketnya cantik sekali, bunganya segar dan dikemas rapi. Penerimanya suka!", author: "Nadia, pelanggan Radinkacraft" },
+  cta: { eyebrow: "Bunga untuk hari ini", title: "Buat hari ini terasa lebih indah", text: "Pilih rangkaian favorit dan kirimkan sedikit kebahagiaan.", button: "Jelajahi toko" },
+  footer: { note: "Rangkaian bunga penuh kasih untuk setiap cerita.", copyright: "© 2026 Radinkacraft. Dirangkai dengan kasih." },
+};
+
+export function formatRupiah(value: number) {
+  return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(value);
+}
