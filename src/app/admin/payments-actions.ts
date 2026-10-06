@@ -11,6 +11,25 @@ import { emailTemplate, sendEmail } from "@/lib/email";
 
 const idSchema = z.string().min(1);
 const text = z.string().trim();
+const qrisMaxSize = 5 * 1024 * 1024;
+const qrisFileMetaSchema = z.object({ type: z.enum(["image/png", "image/jpeg", "image/webp"]), size: z.number().int().min(1).max(qrisMaxSize) });
+
+function logQrisError(action: string, error: unknown) {
+  const value = error && typeof error === "object" ? error as { message?: unknown; code?: unknown } : {};
+  console.error(`[${action}]`, {
+    message: typeof value.message === "string" ? value.message : "Kesalahan QRIS tidak diketahui.",
+    ...(typeof value.code === "string" ? { code: value.code } : {}),
+  });
+}
+
+function qrisStorageMessage(error: unknown) {
+  const value = error && typeof error === "object" ? error as { message?: unknown; code?: unknown } : {};
+  const detail = `${String(value.code ?? "")} ${String(value.message ?? "")}`;
+  if (/bucket.{0,20}(not[\s_-]*found|does not exist)|no such bucket/i.test(detail)) {
+    return "Bucket QRIS belum tersedia. Jalankan npm run storage:setup dengan environment produksi.";
+  }
+  return "Penyimpanan QRIS belum dapat diakses. Periksa koneksi Supabase dan coba kembali.";
+}
 
 export async function saveBankAccount(formData: FormData) {
   await requireAdmin();
@@ -35,20 +54,41 @@ export async function moveBankAccount(id: string, direction: -1 | 1) {
   await prisma.$transaction([prisma.bankAccount.update({ where: { id: rows[index].id }, data: { sortOrder: target.sortOrder } }), prisma.bankAccount.update({ where: { id: target.id }, data: { sortOrder: rows[index].sortOrder } })]); revalidatePath("/admin/rekening"); revalidatePath("/checkout");
 }
 
-export async function qrisUploadUrl() {
-  await requireAdmin(); const path = `library/${crypto.randomUUID()}.webp`;
-  const { data, error } = await createAdminClient().storage.from("qris").createSignedUploadUrl(path);
-  if (error || !data) throw new Error("Tautan unggah QRIS belum tersedia."); return { path, token: data.token };
+export async function qrisUploadUrl(file: { type: string; size: number }) {
+  await requireAdmin();
+  const parsed = qrisFileMetaSchema.safeParse(file);
+  if (!parsed.success) {
+    return { error: parsed.error.issues.some((issue) => issue.path[0] === "size") ? "File terlalu besar atau kosong, maksimal 5 MB." : "Format gambar QRIS harus PNG, JPG, atau WebP." };
+  }
+  const extension = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }[parsed.data.type];
+  const path = `library/${crypto.randomUUID()}.${extension}`;
+  try {
+    const { data, error } = await createAdminClient().storage.from("qris").createSignedUploadUrl(path);
+    if (error || !data) {
+      logQrisError("qrisUploadUrl", error ?? new Error("Signed upload URL tidak dikembalikan."));
+      return { error: qrisStorageMessage(error) };
+    }
+    return { path, token: data.token };
+  } catch (error) {
+    logQrisError("qrisUploadUrl", error);
+    return { error: qrisStorageMessage(error) };
+  }
 }
 
 export async function saveQrisAsset(formData: FormData) {
   await requireAdmin();
-  const parsed = z.object({ id: text.optional(), amount: z.coerce.number().int().positive(), imagePath: z.string().regex(/^library\/[\w-]+\.webp$/), label: text.max(120), isActive: z.boolean() }).safeParse({ id: formData.get("id") || undefined, amount: formData.get("amount"), imagePath: formData.get("imagePath"), label: formData.get("label") || "", isActive: formData.get("isActive") === "on" });
-  if (!parsed.success) throw new Error("Periksa nominal dan gambar QRIS.");
+  const parsed = z.object({ id: text.optional(), amount: z.coerce.number().int().positive(), imagePath: z.string().regex(/^library\/[\w-]+\.(?:webp|png|jpe?g)$/), label: text.max(120), isActive: z.boolean() }).safeParse({ id: formData.get("id") || undefined, amount: formData.get("amount"), imagePath: formData.get("imagePath"), label: formData.get("label") || "", isActive: formData.get("isActive") === "on" });
+  if (!parsed.success) return { error: "Periksa nominal dan gambar QRIS. Format gambar harus PNG, JPG, atau WebP, maksimal 5 MB." };
   const { id, ...data } = parsed.data;
   try { if (id) await prisma.qrisAsset.update({ where: { id }, data: { ...data, label: data.label || null } }); else await prisma.qrisAsset.create({ data: { ...data, label: data.label || null } }); }
-  catch { throw new Error("Nominal QRIS sudah dipakai. Ubah entri yang sudah ada."); }
+  catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String(error.code) : undefined;
+    if (code === "P2002") return { error: "Nominal QRIS sudah dipakai. Ubah entri yang sudah ada." };
+    logQrisError("saveQrisAsset", error);
+    return { error: "QRIS gagal disimpan. Periksa koneksi database dan coba kembali." };
+  }
   revalidatePath("/admin/qris"); revalidatePath("/checkout");
+  return { ok: true as const };
 }
 
 export async function deleteQrisAsset(id: string) {
@@ -98,7 +138,7 @@ export async function decidePayment(orderId: string, decision: "confirm" | "reje
 
 export async function prepareOrderQris(orderId: string, imagePath: string, label: string, saveToLibrary: boolean) {
   const admin = await requireAdmin();
-  const parsed = z.object({ orderId: idSchema, imagePath: z.string().regex(/^library\/[\w-]+\.webp$/), label: text.max(120), saveToLibrary: z.boolean() }).safeParse({ orderId, imagePath, label, saveToLibrary });
+  const parsed = z.object({ orderId: idSchema, imagePath: z.string().regex(/^library\/[\w-]+\.(?:webp|png|jpe?g)$/), label: text.max(120), saveToLibrary: z.boolean() }).safeParse({ orderId, imagePath, label, saveToLibrary });
   if (!parsed.success) return { error: "Data QRIS tidak valid." };
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { payment: true } });
   if (!order || order.status !== OrderStatus.MENUNGGU_QRIS || !order.payment) return { error: "Pesanan tidak sedang menunggu QRIS." };
